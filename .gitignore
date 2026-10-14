@@ -12,3 +12,4 @@
 **/bootstrap/cache/*.php
 **/database/*.sqlite
 .phpunit.result.cache
+!**/storage/**/.gitkeep

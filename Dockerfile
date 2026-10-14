@@ -5,15 +5,19 @@ COPY api/composer.json api/composer.lock ./
 # Extensions are provided by the runtime image; the lock file is authoritative.
 RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --no-progress --ignore-platform-reqs
 COPY api/ ./
-RUN composer dump-autoload --optimize --no-dev
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && composer dump-autoload --optimize --no-dev
 
 # --- panel: dependencies ---
 FROM composer:2 AS panel-vendor
 WORKDIR /app
 COPY panel/composer.json panel/composer.lock ./
 RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --no-progress --ignore-platform-reqs
+# Fresh git clones lack the empty storage dirs (git doesn't track them);
+# package:discover boots providers that compile views and needs them.
 COPY panel/ ./
-RUN composer dump-autoload --optimize --no-dev
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && composer dump-autoload --optimize --no-dev
 
 # --- panel frontend assets (Vite) ---
 FROM node:22-bookworm-slim AS assets
@@ -48,11 +52,10 @@ ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
     DB_CONNECTION=pgsql \
-    SESSION_DRIVER=cookie \
-    QUEUE_CONNECTION=sync \
-    CACHE_STORE=file \
     MAIL_MAILER=log \
+    QUEUE_CONNECTION=sync \
     CACHE_DRIVER=file \
+    CACHE_STORE=file \
     PLOI_API_URL=http://127.0.0.1:8081/
 
 EXPOSE 80 8081
