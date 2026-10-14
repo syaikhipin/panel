@@ -3,15 +3,16 @@
 	order php_server before file_server
 }
 
-# The panel users visit
-:{$PORT:80} {
+# The panel users visit. Listens on 80 AND Dokploy's default 3000 when PORT
+# is not set; the entrypoint swaps in $PORT when the platform provides one.
+:80, :3000 {
 	root * /var/www/panel/public
 	encode zstd gzip
 	php_server
 }
 
-# The bundled Ploi-compatible API, reached by the panel over localhost
-:{$API_PORT:8081} {
+# The bundled Ploi-compatible API — localhost only, reached by the panel internally
+127.0.0.1:{$API_PORT:8081} {
 	root * /var/www/api/public
 	encode zstd gzip
 	php_server

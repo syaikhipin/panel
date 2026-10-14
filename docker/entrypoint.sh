@@ -10,6 +10,12 @@ export PLOI_STUB_TOKEN="${PLOI_STUB_TOKEN:-${PLOI_TOKEN:-}}"
 : "${PLOI_API_URL:=http://127.0.0.1:8081/}"
 export PLOI_API_URL
 
+# When the platform provides its own PORT, serve the panel on exactly that port;
+# otherwise Caddy already listens on both :80 and :3000 (covers Dokploy defaults).
+if [ -n "$PORT" ] && [ "$PORT" != "80" ] && [ "$PORT" != "3000" ]; then
+    sed -i "s/:80, :3000/:${PORT}/" /etc/caddy/Caddyfile
+fi
+
 if [ -z "$APP_KEY" ]; then
     echo "WARNING: APP_KEY is not set — generating an ephemeral key. Set APP_KEY in the environment for a stable key across deploys." >&2
     export APP_KEY="base64:$(head -c 32 /dev/urandom | base64)"
