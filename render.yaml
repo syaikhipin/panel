@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ploi-core-api
+    runtime: docker
+    plan: starter
+    healthCheckPath: /up
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: ploi-core-api-db
+          property: connectionString
+      - key: APP_KEY
+        generateValue: true
+      - key: PLOI_STUB_TOKEN
+        generateValue: true
+      - key: PLOI_STUB_PROVISION_DELAY
+        value: "2"
+
+databases:
+  - name: ploi-core-api-db
+    plan: starter
+    databaseName: ploi_core_api
+    user: ploi_core_api
