@@ -1,0 +1,162 @@
+<template>
+    <Page>
+        <Head><title>{{ __('Dashboard') }}</title></Head>
+        <TopBar :breadcrumbs="breadcrumbs" />
+
+        <Content>
+            <Container>
+                <PageHeader>
+                    <template #start>
+                        <PageHeaderTitle>{{ __('Dashboard') }}</PageHeaderTitle>
+                    </template>
+                </PageHeader>
+
+                <PageBody>
+                    <div>
+                        <ul class="grid grid-cols-1 gap-4" :class="{'md:grid-cols-3': hasAccessToServers, 'md:grid-cols-2': !hasAccessToServers}">
+                            <li class="p-6 rounded shadow bg-surface-3 transform transition duration-fast ease-in-out hover:scale-95">
+                                <inertia-link :href="route('sites.index')" class="flex space-x-4">
+                                    <div>
+                                        <IconGlobe class="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-body">{{ sites }}</h3>
+                                        <p class="text-medium-emphasis text-small">{{ __('Sites') }}</p>
+                                    </div>
+                                </inertia-link>
+                            </li>
+                            <li class="p-6 rounded shadow bg-surface-3 transform transition duration-fast ease-in-out hover:scale-95" v-if="hasAccessToServers">
+                                <inertia-link :href="route('servers.index')" class="flex space-x-4">
+                                    <div>
+                                        <IconStorage class="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-body">{{ servers }}</h3>
+                                        <p class="text-medium-emphasis text-small">{{ __('Servers') }}</p>
+                                    </div>
+                                </inertia-link>
+                            </li>
+                            <li class="p-6 rounded shadow bg-surface-3 transform transition duration-fast ease-in-out hover:scale-95">
+                                <inertia-link
+                                    :href="$page.props.settings.billing ? route('profile.billing.index') : route('profile.index')"
+                                    class="flex space-x-4">
+                                    <div>
+                                        <IconBox class="w-6 h-6" />
+                                    </div>
+                                    <div class="w-full">
+                                        <div class="flex justify-between">
+                                            <h3 class="font-semibold text-body">{{ $page.props.auth.package.name }}</h3>
+                                            <span
+                                                v-if="$page.props.auth.package.trial"
+                                                class="inline-flex items-center justify-center h-6 px-2 text-xs font-semibold tracking-tight text-blue-700 rounded-full bg-blue-500/10">
+                                                Trial
+                                            </span>
+                                        </div>
+                                        <p class="text-medium-emphasis text-small">{{ __('Package') }}</p>
+                                    </div>
+                                </inertia-link>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <List>
+                        <ListItem v-for="log in logs" :key="log.id">
+                            <template #title>
+                                {{ log.title }}
+                            </template>
+                            <template #subtitle>{{ log.description }}</template>
+                            <template #suffix><span class="text-medium-emphasis">{{ log.created_at_human }}</span>
+                            </template>
+                        </ListItem>
+                    </List>
+                </PageBody>
+            </Container>
+        </Content>
+    </Page>
+</template>
+
+<script>
+import TopBar from './components/TopBar.vue'
+import Container from '@/components/Container.vue'
+import Content from '@/components/Content.vue'
+import Page from '@/components/Page.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageHeaderTitle from '@/components/PageHeaderTitle.vue'
+import PageBody from '@/components/PageBody.vue'
+import Button from '@/components/Button.vue'
+import List from '@/components/List.vue'
+import ListItem from '@/components/ListItem.vue'
+import StatusBubble from '@/components/StatusBubble.vue'
+import NotificationBadge from '@/components/NotificationBadge.vue'
+import MainLayout from '@/Layouts/MainLayout.vue'
+import IconBox from '@/components/icons/IconBox.vue'
+import IconGlobe from '@/components/icons/IconGlobe.vue'
+import IconStorage from '@/components/icons/IconStorage.vue'
+
+import {useNotification} from '@/hooks/notification'
+
+
+export default {
+    layout: MainLayout,
+
+    components: {
+        TopBar,
+        Container,
+        Content,
+        Page,
+        PageHeader,
+        PageHeaderTitle,
+        PageBody,
+        Button,
+        List,
+        ListItem,
+        StatusBubble,
+        NotificationBadge,
+        IconBox,
+        IconGlobe,
+        IconStorage,
+    },
+
+    props: {
+        sites: Number,
+        servers: Number,
+        package: Object,
+        logs: Array,
+    },
+
+    methods: {
+        useNotification
+    },
+
+    data() {
+        return {
+            breadcrumbs: [
+                {
+                    title: this.$page.props.settings.name,
+                    to: '/',
+                },
+                {
+                    title: 'Dashboard',
+                    to: '/',
+                },
+            ],
+        }
+    },
+
+    computed: {
+        hasAccessToServers() {
+            return Object.keys(this.$page.props.auth.can).length && (this.$page.props.auth.can.servers.create || this.$page.props.auth.can.servers.update || this.$page.props.auth.can.servers.delete);
+        }
+    },
+
+    mounted() {
+        if (this.$page.props.flash.info) {
+            useNotification({
+                variant: 'info',
+                title: `Information`,
+                message: this.$page.props.flash.info,
+            })
+        }
+    },
+}
+</script>

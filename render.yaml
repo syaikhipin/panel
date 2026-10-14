@@ -1,23 +1,25 @@
 services:
   - type: web
-    name: ploi-core-api
+    name: ploi-panel
     runtime: docker
     plan: starter
-    healthCheckPath: /up
+    healthCheckPath: /
     envVars:
-      - key: DB_URL
+      - key: DATABASE_URL
         fromDatabase:
-          name: ploi-core-api-db
+          name: ploi-panel-db
           property: connectionString
       - key: APP_KEY
         generateValue: true
-      - key: PLOI_STUB_TOKEN
+      - key: PLOI_TOKEN
         generateValue: true
-      - key: PLOI_STUB_PROVISION_DELAY
-        value: "2"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
 
 databases:
-  - name: ploi-core-api-db
+  - name: ploi-panel-db
     plan: starter
-    databaseName: ploi_core_api
-    user: ploi_core_api
+    databaseName: ploi_panel
+    user: ploi_panel

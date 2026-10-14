@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Jobs\Servers;
+
+use Exception;
+use App\Models\Server;
+use App\Traits\HasPloi;
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+
+class CreateServer implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, HasPloi;
+
+    public $server;
+    public $tries = 1;
+
+    public function __construct(Server $server)
+    {
+        $this->server = $server;
+    }
+
+    public function handle()
+    {
+        $ploiServer = $this->getPloi()->server()->create(
+            $this->server->name,
+            $this->server->provider->ploi_id,
+            $this->server->providerRegion->region_id,
+            $this->server->providerPlan->plan_id,
+            'server',
+            $this->server->database_type,
+            'nginx',
+            '8.1',
+            $this->server->os,
+        );
+
+        $this->server->ploi_id = $ploiServer->id;
+        $this->server->save();
+
+        // Let's fetch the status after 5 minutes
+        dispatch(new FetchServerStatus($this->server))->delay(now()->addMinutes(5));
+    }
+
+    public function failed(Exception $exception)
+    {
+        $this->server->delete();
+    }
+}

@@ -1,0 +1,305 @@
+<template>
+    <Page>
+        <Head><title>{{ __('Servers') }}</title></Head>
+        <Portal to="modals" v-if="can('servers', 'create')">
+            <ModalContainer>
+                <Modal @close="modalIsOpen = false" v-if="modalIsOpen" @submit="submit">
+                    <template #title>{{ __('Create a server') }}</template>
+
+                    <template #form>
+                        <FormInput :loading="loading" :label="__('Name')" placeholder="webserver-01"
+                                   :errors="$page.props.errors.name" v-model="form.name" />
+
+                        <FormSelect :loading="loading" :errors="$page.props.errors.provider_id" :label="__('Select provider')"
+                                    v-model="form.provider_id">
+                            <option :value="`${null}`">{{ __('Select provider') }}</option>
+                            <option v-for="(name, id) in providers" :value="id">{{ name }}</option>
+                        </FormSelect>
+
+                        <FormSelect :loading="loading" :errors="$page.props.errors.provider_region_id" :label="__('Select region')"
+                                    v-model="form.provider_region_id">
+                            <option :value="`${null}`">{{ __('Select region') }}</option>
+                            <option v-for="(name, id) in regions" :value="id">{{ name }}</option>
+                        </FormSelect>
+
+                        <FormSelect :loading="loading" :errors="$page.props.errors.provider_plan_id" :label="__('Select plan')"
+                                    v-model="form.provider_plan_id">
+                            <option :value="`${null}`">{{ __('Select plan') }}</option>
+                            <option v-for="(name, id) in plans" :value="id">{{ name }}</option>
+                        </FormSelect>
+
+                        <FormSelect :loading="loading" :errors="$page.props.errors.database_type" :label="__('Select database type')"
+                                    v-model="form.database_type">
+                            <option value="mysql">{{ __('MySQL 5.7') }}</option>
+                            <option value="mariadb">{{ __('MariaDB') }}</option>
+                            <option value="postgresql">{{ __('PostgreSQL') }}</option>
+                            <option value="postgresql13">{{ __('PostgreSQL 13') }}</option>
+                        </FormSelect>
+                    </template>
+
+                    <template #form-actions>
+                        <Button v-text="__('Create')"></Button>
+                    </template>
+                </Modal>
+            </ModalContainer>
+        </Portal>
+
+        <TopBar :breadcrumbs="breadcrumbs" />
+
+        <Content>
+            <Container>
+                <PageHeader>
+                    <template #start>
+                        <PageHeaderTitle>{{ __('Servers') }}</PageHeaderTitle>
+                    </template>
+                    <template #end v-if="can('servers', 'create')">
+                        <Button @click="modalIsOpen = true">{{ __('Create server') }}</Button>
+                    </template>
+                </PageHeader>
+
+                <PageBody>
+                    <EmptyImage v-if="!servers.meta.total" />
+                    <List>
+                        <ListItem v-for="server in servers.data" :key="server.id">
+                            <template #prefix>
+                                <StatusBubble :variant="server.status === 'busy' ? 'gray' : 'success'" />
+                            </template>
+                            <template #title>
+                                <inertia-link class="text-primary font-medium" :href="route('servers.show', server.id)">
+                                    {{ server.name }}
+                                </inertia-link>
+                            </template>
+                            <template #subtitle>{{ server.ip }} <span v-if="server.ip">&centerdot;</span>
+                                {{ server.sites_count }} {{ __choice('site|sites', server.sites_count) }}
+                            </template>
+                            <template #suffix>
+                                <Dropdown v-slot="{ isOpen, toggle, position }">
+                                    <IconButton @click="toggle">
+                                        <IconMore class="w-5 h-5" />
+                                    </IconButton>
+
+                                    <DropdownList :position="position" v-if="isOpen">
+                                        <DropdownListItem :to="route('servers.show', server.id)">View</DropdownListItem>
+                                        <DropdownListItemButton v-if="can('servers', 'delete')" class="!text-danger"
+                                                                @click="confirmDelete(server)">
+                                            Delete
+                                        </DropdownListItemButton>
+                                    </DropdownList>
+                                </Dropdown>
+                            </template>
+                        </ListItem>
+                    </List>
+                </PageBody>
+            </Container>
+        </Content>
+    </Page>
+</template>
+
+<script>
+import TopBar from './components/TopBar.vue'
+import Container from '@/components/Container.vue'
+import Content from '@/components/Content.vue'
+import Page from '@/components/Page.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageHeaderTitle from '@/components/PageHeaderTitle.vue'
+import PageBody from '@/components/PageBody.vue'
+import Button from '@/components/Button.vue'
+import List from '@/components/List.vue'
+import ListItem from '@/components/ListItem.vue'
+import StatusBubble from '@/components/StatusBubble.vue'
+import NotificationBadge from '@/components/NotificationBadge.vue'
+import MainLayout from '@/Layouts/MainLayout.vue'
+import IconBox from '@/components/icons/IconBox.vue'
+import IconGlobe from '@/components/icons/IconGlobe.vue'
+import IconStorage from '@/components/icons/IconStorage.vue'
+import IconButton from '@/components/IconButton.vue'
+import IconMore from '@/components/icons/IconMore.vue'
+import EmptyImage from '@/components/EmptyImage.vue'
+import Modal from '@/components/Modal.vue'
+import ModalContainer from '@/components/ModalContainer.vue'
+import FormInput from '@/components/forms/FormInput.vue'
+import FormSelect from '@/components/forms/FormSelect.vue'
+import FormActions from '@/components/FormActions.vue'
+import Dropdown from '@/components/Dropdown.vue'
+import DropdownList from '@/components/DropdownList.vue'
+import DropdownListItem from '@/components/DropdownListItem.vue'
+import DropdownListItemButton from '@/components/DropdownListItemButton.vue'
+import {useConfirm} from '@/hooks/confirm'
+
+export default {
+    layout: MainLayout,
+
+    components: {
+        TopBar,
+        Container,
+        Content,
+        Page,
+        PageHeader,
+        PageHeaderTitle,
+        PageBody,
+        Button,
+        List,
+        IconButton,
+        IconMore,
+        ListItem,
+        StatusBubble,
+        NotificationBadge,
+        IconBox,
+        IconGlobe,
+        IconStorage,
+        EmptyImage,
+        Modal,
+        ModalContainer,
+        FormInput,
+        FormActions,
+        FormSelect,
+        Dropdown,
+        DropdownList,
+        DropdownListItem,
+        DropdownListItemButton
+    },
+
+    props: {
+        servers: Object,
+        dataProviders: [Array, Object],
+    },
+
+    computed: {
+        shouldBePolling() {
+            return !!this.servers.data.filter((server) => {
+                return server.status === 'busy';
+            }).length;
+        }
+    },
+
+    mounted() {
+        if (this.shouldBePolling) {
+            this.startPollingInterval();
+        }
+    },
+
+    watch: {
+        shouldBePolling: function (value) {
+            if (!value) {
+                this.clearPollingInterval();
+
+                return;
+            }
+
+            if (!this.pollingInterval) {
+                this.startPollingInterval();
+            }
+        },
+
+        'form.provider_id': function (value) {
+            // Reset values if null
+            if (!value) {
+                this.regions = [];
+                this.plans = [];
+                return;
+            }
+
+            this.loading = true;
+
+            window.axios.get(this.route('servers.plans-and-regions', value))
+                .then(response => {
+                    this.loading = false;
+                    this.regions = response.data.regions;
+                    this.plans = response.data.plans;
+                })
+                .catch(error => {
+                    this.loading = false;
+                })
+        }
+    },
+
+    data() {
+        return {
+            loading: false,
+
+            form: {
+                name: null,
+                provider_id: null,
+                provider_region_id: null,
+                provider_plan_id: null,
+                database_type: 'mysql'
+            },
+
+            providers: this.dataProviders,
+            regions: [],
+            plans: [],
+
+            pollingInterval: null,
+
+            modalIsOpen: false,
+            breadcrumbs: [
+                {
+                    title: this.$page.props.settings.name,
+                    to: '/',
+                },
+                {
+                    title: this.__('Servers'),
+                    to: this.route('servers.index'),
+                },
+            ],
+        }
+    },
+
+    methods: {
+        startPollingInterval() {
+            this.pollingInterval = setInterval(function () {
+                this.poll();
+            }.bind(this), 120000);
+        },
+
+        clearPollingInterval() {
+            clearTimeout(this.pollingInterval);
+            this.pollingInterval = null;
+        },
+
+        poll() {
+            this.$inertia.get(this.route('servers.index'), {}, {
+                only: ['servers'],
+                preserveScroll: true,
+            })
+        },
+
+        submit() {
+            this.$inertia.post(this.route('servers.store'), this.form, {
+                only: ['errors', 'flash', 'servers'],
+                onStart: () => this.loading = true,
+                onSuccess: () => {
+                    if (!Object.keys(this.$page.props.errors).length) {
+                        this.form.domain = null;
+                        this.modalIsOpen = false;
+
+                        this.form = {
+                            name: null,
+                            provider_id: null,
+                            provider_region_id: null,
+                            provider_plan_id: null,
+                        }
+                    }
+                },
+                onFinish: () => this.loading = false
+            });
+        },
+
+        confirmDelete(server) {
+            useConfirm({
+                title: this.__('Are you sure?'),
+                message: `Your server will be deleted completely, this action is irreversible.`,
+                onConfirm: () => this.delete(server),
+            })
+        },
+
+        delete(server) {
+            this.$inertia.delete(this.route('servers.delete', server.id))
+        }
+    },
+
+    beforeUnmount() {
+        this.clearPollingInterval();
+    }
+}
+</script>

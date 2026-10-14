@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Http\Controllers\Profile;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\UserProfileRequest;
+use App\Http\Resources\UserProfileResource;
+
+class ProfileController extends Controller
+{
+    public function index()
+    {
+        return inertia('Profile/Index', [
+            'profile' => new UserProfileResource(auth()->user()),
+            'countries' => countries()
+        ]);
+    }
+
+    public function update(UserProfileRequest $request)
+    {
+        $request->user()->update($request->validated());
+
+        return redirect()->route('profile.index')->with('success', __('Profile saved'));
+    }
+
+    public function toggleTheme(Request $request)
+    {
+        $mode = 'light';
+
+        if ($request->user()->theme === 'light') {
+            $mode = 'dark';
+        }
+
+        $request->user()->theme = $mode;
+        $request->user()->save();
+
+        return $mode;
+    }
+
+    public function destroy(Request $request)
+    {
+        /* @var $user User */
+        $user = $request->user();
+
+        $user->sites()->detach();
+        $user->servers()->detach();
+        $user->supportTicketReplies()->delete();
+        $user->supportTickets()->delete();
+
+        $user->delete();
+
+        auth()->logout();
+
+        return redirect()->route('login');
+    }
+}

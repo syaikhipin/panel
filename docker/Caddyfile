@@ -3,8 +3,16 @@
 	order php_server before file_server
 }
 
+# The panel users visit
 :{$PORT:80} {
-	root * /var/www/html/public
+	root * /var/www/panel/public
+	encode zstd gzip
+	php_server
+}
+
+# The bundled Ploi-compatible API, reached by the panel over localhost
+:{$API_PORT:8081} {
+	root * /var/www/api/public
 	encode zstd gzip
 	php_server
 }

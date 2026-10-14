@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Jobs\Cronjobs;
+
+use App\Models\Cronjob;
+use App\Traits\HasPloi;
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+
+class CreateCronjob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, HasPloi;
+
+    public $cronjob;
+
+    /**
+     * Create a new job instance.
+     *
+     * @param Cronjob $cronjob
+     */
+    public function __construct(Cronjob $cronjob)
+    {
+        $this->cronjob = $cronjob;
+    }
+
+    /**
+     * Execute the job.
+     *
+     * @return void
+     */
+    public function handle()
+    {
+        $owner = $this->cronjob->site->users()->first();
+
+        $ploiCronjob = $this->getPloi()
+            ->server($this->cronjob->server->ploi_id)
+            ->cronjobs()
+            ->create(
+                $this->cronjob->command,
+                $this->cronjob->frequency,
+                $owner->user_name
+            );
+
+        $this->cronjob->ploi_id = $ploiCronjob->id;
+        $this->cronjob->save();
+
+        // Lets fetch the status after 5 seconds
+        dispatch(new FetchCronjobStatus($this->cronjob))->delay(now()->addSeconds(3));
+    }
+}

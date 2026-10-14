@@ -1,0 +1,50 @@
+<?php
+
+use App\Models\Setting;
+use Illuminate\Support\Arr;
+use Illuminate\Contracts\Foundation\Application;
+
+if (! function_exists('setting')) {
+    /**
+     * @param null $key
+     * @param null $default
+     * @return array|ArrayAccess|bool|Application|mixed
+     */
+    function setting($key = null, $default = null)
+    {
+        if (is_array($settings = $key)) {
+            foreach ($settings as $key => $value) {
+                if ($value === true) {
+                    $value = '1';
+                }
+
+                if ($value === false) {
+                    $value = '0';
+                }
+
+                Setting::updateOrCreate([
+                    'key' => $key,
+                ], [
+                    'value' => $value,
+                ]);
+            }
+
+            try {
+                cache()->forget('core.settings');
+            } catch (Exception $e) {
+                //
+            }
+
+            return true;
+        }
+
+        $value = Arr::get(app('settings'), $key, $default);
+
+        // Boolean casting
+        if ($value === "0" || $value === "1" && $key !== 'trial_package') {
+            return (bool) $value;
+        }
+
+        return $value;
+    }
+}
