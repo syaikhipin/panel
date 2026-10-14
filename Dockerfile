@@ -52,6 +52,7 @@ ENV APP_ENV=production \
     QUEUE_CONNECTION=sync \
     CACHE_STORE=file \
     MAIL_MAILER=log \
+    CACHE_DRIVER=file \
     PLOI_API_URL=http://127.0.0.1:8081/
 
 EXPOSE 80 8081
